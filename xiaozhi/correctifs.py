@@ -108,6 +108,8 @@ CORRECTIFS = [
                 if not accepte(conn, content_for_length_check, speaker_name):
                     logger.bind(tag=TAG).info(f"[voix-fr] ignore ({speaker_name or 'voix inconnue'}) : {content_for_length_check}")
                     return
+                from core.utils.voixfr_regard import lancer as voixfr_regarder  # [voix-fr]
+                voixfr_regarder(conn)
                 await startToChat(conn, enhanced_text)'''),
     ]),
     # 6. Outils publies par le robot : descriptions japonaises traduites, outils
@@ -119,7 +121,7 @@ CORRECTIFS = [
                         "inputSchema": input_schema,
                     }''',
          '''                    from core.utils.voixfr_outils_robot import adapter  # [voix-fr]
-                    adapte = adapter(name, description, input_schema)
+                    adapte = adapter(name, description, input_schema, conn.config)
                     if adapte is None:
                         logger.bind(tag=TAG).info(f"[voix-fr] outil du robot masque : {name}")
                         continue

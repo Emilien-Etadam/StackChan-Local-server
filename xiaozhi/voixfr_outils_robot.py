@@ -69,9 +69,16 @@ FR = {
 }
 
 
-def adapter(nom, description, schema):
+# remplaces par la memoire du serveur (voixfr_memoire, page /memoire de voix-fr)
+MEMOIRE_ROBOT = {"remember", "recall", "forget"}
+
+
+def adapter(nom, description, schema, config=None):
     """Renvoie (description, schema) en francais, ou None pour masquer l'outil."""
     if nom in MASQUES:
+        return None
+    fonctions = (((config or {}).get("Intent") or {}).get("function_call") or {}).get("functions") or []
+    if nom in MEMOIRE_ROBOT and "retenir" in fonctions:
         return None
     if nom not in FR:
         return description, schema

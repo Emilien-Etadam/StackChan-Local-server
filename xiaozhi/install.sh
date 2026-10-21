@@ -45,14 +45,22 @@ git -c safe.directory="$BASE" -C "$BASE" checkout -q -f "$VERSION"
 echo "=== 4/7 Correctifs francais ==="
 cp "$ICI/correctifs.py" "$BASE/correctifs.py"
 cp "$ICI/agent-base-prompt-fr.txt" "$SRV/agent-base-prompt-fr.txt"
-cp "$ICI"/voixfr_filtre_nom.py "$ICI"/voixfr_outils_robot.py "$SRV/core/utils/"
-cp "$ICI"/voixfr_recherche_web.py "$SRV/plugins_func/functions/"
+cp "$ICI"/voixfr_filtre_nom.py "$ICI"/voixfr_outils_robot.py "$ICI"/voixfr_regard.py "$SRV/core/utils/"
+cp "$ICI"/voixfr_recherche_web.py "$ICI"/voixfr_memoire.py "$ICI"/voixfr_zimbra.py "$SRV/plugins_func/functions/"
+cp "$ICI/completer-config.py" "$BASE/completer-config.py"
 
 echo "=== 5/7 Environnement Python 3.10 (PyTorch CPU) ==="
 # venv cree par une version precedente du script avec un Python sous /root : a refaire
 if [ -L "$BASE/venv/bin/python" ] && readlink -f "$BASE/venv/bin/python" | grep -q "^/root/"; then rm -rf "$BASE/venv"; fi
 [ -x "$BASE/venv/bin/python" ] || uv venv -q --python 3.10 "$BASE/venv"
 uv pip install --python "$BASE/venv/bin/python" --torch-backend cpu -r "$SRV/requirements.txt"
+uv pip install --python "$BASE/venv/bin/python" "opencv-python-headless<4.12" "caldav>=1.4,<2"   # [voix-fr] visage (regard) ; 4.12+ exige numpy 2
+# detecteur de visage YuNet (OpenCV Zoo, 230 Ko) ; a defaut, le detecteur Haar livre avec OpenCV
+YUNET="$SRV/models/face_detection_yunet_2023mar.onnx"
+[ "$(stat -c %s "$YUNET" 2>/dev/null || echo 0)" -gt 100000 ] || curl -fsSL -o "$YUNET" https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx \
+  || true
+# un pointeur Git LFS (quelques octets) n'est pas le modele : on le retire
+if [ "$(stat -c %s "$YUNET" 2>/dev/null || echo 0)" -lt 100000 ]; then rm -f "$YUNET"; echo "  (YuNet non telecharge : detecteur Haar d'OpenCV utilise)"; fi
 "$BASE/venv/bin/python" "$BASE/correctifs.py" "$SRV"
 
 echo "=== 6/7 Configuration ==="
@@ -76,6 +84,9 @@ FIN_REMPL
 else
   echo "  config existante conservee : $SRV/data/.config.yaml"
 fi
+# nouvelles fonctions : leurs reglages sont ajoutes s'ils manquent (rien d'existant n'est modifie)
+cp -p "$SRV/data/.config.yaml" "$SRV/data/.config.yaml.avant-maj"
+"$BASE/venv/bin/python" "$BASE/completer-config.py" "$SRV/data/.config.yaml"
 chown -R xiaozhi:xiaozhi "$BASE"
 
 echo "=== 7/7 Service systemd ==="

@@ -73,6 +73,19 @@ voix-fr calcule une empreinte vocale de chaque phrase reçue (modèle WeSpeaker,
 Le robot cherche sur le SearXNG local (format json activé) : `bash xiaozhi/activer-recherche.sh`
 dans la console du LXC xiaozhi (port détecté sur 192.168.30.122 ; `--off` pour retirer).
 
+## Regard, mémoire, agenda et mails
+
+Ajoutés automatiquement à la config par `xiaozhi/install.sh` (rien d'existant n'est modifié) :
+
+- **Regard** (bloc `regard`) : à chaque phrase acceptée, xiaozhi prend une photo par la
+  caméra du robot, cherche ton visage (OpenCV YuNet) et tourne la tête vers toi.
+  Tête du mauvais côté : `sens_yaw: -1` (ou `sens_pitch: -1`).
+- **Mémoire** : « retiens que... » est gardé par voix-fr. Page :
+  `http://192.168.30.121:8200/memoire` (voir, corriger, supprimer).
+- **Agenda et mails Zimbra** (bloc `plugins.zimbra`, à remplir sur le LXC) : lire
+  l'agenda, ajouter un rendez-vous (CalDAV), lire les mails sans les marquer lus, préparer
+  une réponse dans **Brouillons**. Aucun envoi : le module ne contient pas de code d'envoi.
+
 ## Règle de modification
 
 - **Configs et prompt** : modifier les fichiers ci-dessus directement, ils sont conservés.

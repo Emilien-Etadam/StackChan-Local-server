@@ -21,7 +21,7 @@ sudo chown -R "$UTIL":"$UTIL" "$APP"
 sudo chown "$UTIL":"$UTIL" "$CONF"
 
 echo "=== 2/5 Code ==="
-cp "$ICI"/app.py "$ICI"/robot_fx.py "$ICI"/normaliser_fr.py "$ICI"/locuteur.py "$ICI"/test.html "$APP"/
+cp "$ICI"/app.py "$ICI"/robot_fx.py "$ICI"/normaliser_fr.py "$ICI"/locuteur.py "$ICI"/memoire.py "$ICI"/memoire.html "$ICI"/test.html "$APP"/
 if [ ! -f "$CONF/voix.yaml" ]; then
   cp "$ICI/voix.yaml" "$CONF/voix.yaml"
   echo "   config par defaut creee : $CONF/voix.yaml"

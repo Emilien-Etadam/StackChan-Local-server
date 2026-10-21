@@ -32,8 +32,10 @@ p = sys.argv[1]
 url = os.environ["URL"]
 t = open(p, encoding="utf-8").read()
 # 1. bloc plugins.recherche_web (reecrit a chaque fois)
-t = re.sub(r"(?m)\n*^# \[voix-fr\] recherche internet[^\n]*\n", "\n", t)
-t = re.sub(r"(?m)^plugins:\n  recherche_web:\n(?:    [^\n]*\n)*", "", t)
+t = re.sub(r"(?m)^  recherche_web:\n(?:    [^\n]*\n)*", "", t)
+# bloc « plugins: » laisse vide (et son commentaire) : on le retire
+t = re.sub(r"(?m)\n*^# \[voix-fr\] recherche internet[^\n]*\n(?=plugins:\s*\n(?!  ))", "\n", t)
+t = re.sub(r"(?m)^plugins:\s*\n(?!  )", "", t)
 # 2. liste des fonctions du mode outils
 m = re.search(r"(?m)^    functions:(.*)$", t)
 if not m:
@@ -45,18 +47,13 @@ if debut and not debut.startswith("["):
 fonctions = [f for f in fonctions if f != "recherche_web"]
 if url != "--off":
     fonctions.append("recherche_web")
-    if re.search(r"(?m)^plugins:", t):
-        sys.exit("un bloc « plugins: » existe deja : ajouter recherche_web a la main")
-    t = t.rstrip("\n") + f"""
-
-# [voix-fr] recherche internet (SearXNG local)
-plugins:
-  recherche_web:
-    url: {url}
-    resultats: 5
-    langue: fr
-"""
+    bloc = f"  recherche_web:\n    url: {url}\n    resultats: 5\n    langue: fr\n"
+    if re.search(r"(?m)^plugins:\s*$", t):
+        t = re.sub(r"(?m)^plugins:\s*\n", lambda m: m.group(0) + bloc, t, count=1)
+    else:
+        t = t.rstrip("\n") + "\n\n# [voix-fr] recherche internet (SearXNG local)\nplugins:\n" + bloc
 commentaire = "   # les outils du robot arrivent tout seuls par MCP ; handle_exit_intent est ajoute d'office"
+m = re.search(r"(?m)^    functions:(.*)$", t)     # position recalculee apres l'ajout du bloc
 t = t[:m.start()] + "    functions: [" + ", ".join(fonctions) + "]" + commentaire + t[m.end():]
 open(p, "w", encoding="utf-8").write(t)
 print("  fonctions serveur :", fonctions or "aucune")

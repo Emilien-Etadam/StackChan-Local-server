@@ -10,6 +10,7 @@
   POST /voiceprint/identify      reconnaissance du locuteur (contrat « voiceprint » de xiaozhi)
   GET  /voiceprint/health
   GET  /locuteurs  POST /locuteurs/inscrire|inscrire-fichier|effacer   inscription depuis /test
+  GET  /memoire                  page des notes du robot ; GET/POST/DELETE /memoire/api
 Configuration : /etc/voix-fr/voix.yaml
 """
 import io, os, subprocess, threading, time, wave
@@ -248,6 +249,39 @@ def locuteurs_effacer(r: Inscription):
     if locuteurs:
         locuteurs.effacer(r.ident.strip().lower())
     return {"ok": True}
+
+
+# ---------- Memoire du robot ----------
+from memoire import Memoire
+memoire = Memoire(CONFIG_PATH.parent / "memoire.json")
+
+
+class Note(BaseModel):
+    cle: str
+    texte: str = ""
+
+
+@app.get("/memoire", response_class=HTMLResponse)
+def page_memoire():
+    return (ICI / "memoire.html").read_text(encoding="utf-8")
+
+
+@app.get("/memoire/api")
+def memoire_liste():
+    return memoire.liste()
+
+
+@app.post("/memoire/api")
+def memoire_retenir(n: Note):
+    try:
+        return {"ok": True, "notes": memoire.retenir(n.cle, n.texte)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.delete("/memoire/api")
+def memoire_oublier(n: Note):
+    return {"ok": True, "supprimees": memoire.oublier(n.cle)}
 
 
 @app.get("/health")
