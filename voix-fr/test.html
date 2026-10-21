@@ -44,6 +44,7 @@
       <label><span>Taille de la boîte : <b id="v_peigne_ms"></b> ms</span><input type="range" id="peigne_ms" min="2" max="15" step="0.5"></label>
       <label><span>Résonance : <b id="v_peigne_retour"></b></span><input type="range" id="peigne_retour" min="0" max="0.8" step="0.05"></label>
       <label><span>Grain (bits, 0 = aucun) : <b id="v_bits"></b></span><input type="range" id="bits" min="0" max="16" step="1"></label>
+      <label><span>Volume : <b id="v_gain_db"></b> dB</span><input type="range" id="gain_db" min="0" max="20" step="1"></label>
     </div>
     <div class="boutons">
       <button id="ecouter">Écouter</button>
@@ -64,7 +65,7 @@
   </section>
 </main>
 <script>
-const CLES = ["demi_tons","anneau_hz","anneau_dose","peigne_ms","peigne_retour","peigne_dose","bits"];
+const CLES = ["demi_tons","anneau_hz","anneau_dose","peigne_ms","peigne_retour","peigne_dose","bits","gain_db"];
 const $ = id => document.getElementById(id);
 let ctx = null;
 
@@ -83,7 +84,7 @@ $("ecouter").onclick = async () => {
   fetch("/normaliser", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ text:$("texte").value }) })
     .then(r => r.json()).then(r => $("texte_lu").textContent = "Lu : " + r.text).catch(() => {});
   ctx = ctx || new AudioContext({ sampleRate: 24000 });
-  const t0 = performance.now(); let premier = null, prochain = ctx.currentTime + 0.05, reste = new Uint8Array(0), duree = 0;
+  const t0 = performance.now(); let premier = null, prochain = ctx.currentTime + 0.05, reste = new Uint8Array(0), duree = 0, crete = 0;
   try {
     const rep = await fetch("/tts/stream", { method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ text:$("texte").value, character:$("voix").value, fx:lireEffet() }) });
@@ -96,13 +97,13 @@ $("ecouter").onclick = async () => {
       const n = Math.floor(tout.length / 2); reste = tout.slice(n * 2);
       if (!n) continue;
       const vue = new DataView(tout.buffer, 0, n * 2), f = new Float32Array(n);
-      for (let i = 0; i < n; i++) f[i] = vue.getInt16(i * 2, true) / 32768;
+      for (let i = 0; i < n; i++) { f[i] = vue.getInt16(i * 2, true) / 32768; crete = Math.max(crete, Math.abs(f[i])); }
       const b = ctx.createBuffer(1, n, 24000); b.copyToChannel(f, 0);
       const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination);
       prochain = Math.max(prochain, ctx.currentTime); s.start(prochain); prochain += b.duration; duree += b.duration;
     }
     const total = (performance.now() - t0) / 1000;
-    $("mesure_tts").textContent = `premier son ${(premier/1000).toFixed(2)} s · audio ${duree.toFixed(1)} s · calcul ${total.toFixed(2)} s (×${(duree/total).toFixed(1)} temps réel)`;
+    $("mesure_tts").textContent = `premier son ${(premier/1000).toFixed(2)} s · audio ${duree.toFixed(1)} s · calcul ${total.toFixed(2)} s (×${(duree/total).toFixed(1)} temps réel) · crête ${(20*Math.log10(crete||1e-9)).toFixed(1)} dBFS`;
   } catch (e) { $("mesure_tts").textContent = "Erreur : " + e.message; }
   $("ecouter").disabled = false;
 };

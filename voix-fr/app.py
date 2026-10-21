@@ -28,11 +28,14 @@ VOIX = ["estelle", "alba", "anna", "azelma", "caro_davy", "cosette", "eponine", 
         "paul", "george", "michael", "bill_boerst", "peter_yearsley", "stuart_bell",
         "juergen", "giovanni", "rafael", "daan"]
 CLES_FX = ["demi_tons", "fenetre_ms", "anneau_hz", "anneau_dose",
-           "peigne_ms", "peigne_retour", "peigne_dose", "bits"]
+           "peigne_ms", "peigne_retour", "peigne_dose", "bits", "gain_db"]
+GAIN_DEFAUT_DB = 9.0     # niveau de sortie si voix.yaml ne le precise pas
 
 
 def lire_config():
-    return yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+    c = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+    c.setdefault("effet", {}).setdefault("gain_db", GAIN_DEFAUT_DB)
+    return c
 
 
 cfg = lire_config()

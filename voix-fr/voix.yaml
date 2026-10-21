@@ -9,6 +9,7 @@ effet:            # recette "petit_robot"
   peigne_retour: 0.4
   peigne_dose: 0.35
   bits: 0
+  gain_db: 9       # volume de sortie (dB) ; un limiteur evite la saturation
 pocket:
   langue: french
   threads: 2        # Pocket se limite a 1 coeur par defaut ; 2 a 4 peut donner plus de marge

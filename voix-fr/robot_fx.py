@@ -7,6 +7,7 @@ Trois etages, chacun traite l'audio morceau par morceau en gardant son etat
   2. modulation en anneau : le signal est multiplie par une onde lente (vibration robot).
   3. echo metallique tres court : filtre en peigne reinjecte (voix dans une boite en tole).
   4. option : reduction de resolution (bitcrush).
+  5. volume : gain puis limiteur doux (monte le niveau sans saturer).
 """
 import numpy as np
 from scipy.signal import lfilter
@@ -16,7 +17,7 @@ class RobotFX:
     def __init__(self, sr=24000, demi_tons=0.0, fenetre_ms=30.0,
                  anneau_hz=50.0, anneau_dose=0.0,
                  peigne_ms=6.0, peigne_retour=0.0, peigne_dose=0.0,
-                 bits=0):
+                 bits=0, gain_db=0.0):
         self.sr = sr
         self.r = 2.0 ** (demi_tons / 12.0)
         self.W = max(64, int(sr * fenetre_ms / 1000))
@@ -28,6 +29,7 @@ class RobotFX:
         self.peigne_zi = np.zeros(D)
         self.peigne_dose = peigne_dose
         self.bits = bits
+        self.gain = 10.0 ** (gain_db / 20.0)
 
     def _hauteur(self, x):
         if abs(self.r - 1.0) < 1e-6:
@@ -63,7 +65,22 @@ class RobotFX:
         if self.bits:
             q = 2.0 ** (self.bits - 1)
             y = np.round(y * q) / q
+        if self.gain != 1.0:
+            y = limiter(y * self.gain)
         return np.clip(y, -1.0, 1.0).astype(np.float32)
+
+
+def limiter(y, seuil=0.7):
+    """Limiteur doux sans etat : lineaire sous le seuil, puis courbe tanh qui
+    tend vers 1.0 (comme un ressort qui durcit au lieu d'une butee seche)."""
+    a = np.abs(y)
+    au_dessus = a > seuil
+    if not au_dessus.any():
+        return y
+    out = y.copy()
+    marge = 1.0 - seuil
+    out[au_dessus] = np.sign(y[au_dessus]) * (seuil + marge * np.tanh((a[au_dessus] - seuil) / marge))
+    return out
 
 
 RECETTES = {
