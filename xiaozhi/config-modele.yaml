@@ -26,7 +26,7 @@ filtre_nom:
   actif: true
   noms: ["stack chan", "stackchan"]
   suite_s: 20
-  tolerance: 0.75
+  tolerance: 0.83
 
 prompt_template: agent-base-prompt-fr.txt
 prompt: |

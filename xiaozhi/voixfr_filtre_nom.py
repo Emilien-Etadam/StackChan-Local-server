@@ -6,7 +6,7 @@ filtre_nom:
   actif: true
   noms: ["stack chan", "stackchan"]   # variantes acceptees (comparaison approximative)
   suite_s: 20                         # secondes sans nom apres la fin d'une reponse
-  tolerance: 0.75                     # 1.0 = orthographe exacte
+  tolerance: 0.83                     # 1.0 = son exact
 """
 import re
 import time
@@ -21,16 +21,31 @@ def _plat(texte):
     return re.sub(r"[^a-z0-9 ]+", " ", t)
 
 
-def contient_nom(texte, noms, tolerance=0.75):
+def _phon(s):
+    """Cle phonetique grossiere : la transcription de « Stack-chan » varie
+    (Stack Shine, Tak Shane, Tak schön, Stac tchan...), on compare le son."""
+    s = re.sub(r"[^a-z]", "", s)
+    s = re.sub(r"^s(?=t)", "", s)              # stack -> tack
+    s = re.sub(r"t(?=ch|sh)", "", s)           # tchan -> chan
+    s = re.sub(r"sch|sh|ch", "x", s)           # chan / shan / schon -> xan
+    s = re.sub(r"ck|q|c|k|g", "k", s)          # tack / tac / tak -> tak
+    s = re.sub(r"[aeiouy]+", "a", s)           # voyelles confondues
+    s = re.sub(r"h", "", s)
+    s = re.sub(r"a$", "", s) if len(s) > 4 else s   # shine / shane : e final
+    return re.sub(r"(.)\1+", r"\1", s)
+
+
+def contient_nom(texte, noms, tolerance=0.83):
     mots = _plat(texte).split()
-    cibles = [_plat(n).replace(" ", "") for n in noms]
+    cibles = [_phon(_plat(n)) for n in noms]
     for i in range(len(mots)):
         for n in (1, 2, 3):
             if i + n > len(mots):
                 break
-            bloc = "".join(mots[i:i + n])
+            bloc = _phon("".join(mots[i:i + n]))
             for c in cibles:
-                if c and SequenceMatcher(None, bloc, c).ratio() >= tolerance:
+                # meme debut (« ta... ») et au plus un son different
+                if c and bloc[:2] == c[:2] and SequenceMatcher(None, bloc, c).ratio() >= tolerance:
                     return True
     return False
 
@@ -41,7 +56,7 @@ def accepte(conn, texte):
         return True
     maintenant = time.time()
     noms = cfg.get("noms") or ["stack chan"]
-    if contient_nom(texte, noms, float(cfg.get("tolerance", 0.75))):
+    if contient_nom(texte, noms, float(cfg.get("tolerance", 0.83))):
         conn.voixfr_dernier_echange = maintenant
         return True
     # pendant que le robot parle, seule une phrase avec son nom peut l'interrompre
