@@ -68,6 +68,11 @@ voix-fr calcule une empreinte vocale de chaque phrase reçue (modèle WeSpeaker,
    monde passe.
 3. Retour en arrière : `bash xiaozhi/activer-voix.sh --off`
 
+## Recherche internet
+
+Le robot cherche sur le SearXNG local (format json activé) : `bash xiaozhi/activer-recherche.sh`
+dans la console du LXC xiaozhi (port détecté sur 192.168.30.122 ; `--off` pour retirer).
+
 ## Règle de modification
 
 - **Configs et prompt** : modifier les fichiers ci-dessus directement, ils sont conservés.
