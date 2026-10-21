@@ -4,6 +4,7 @@
 #
 # A lancer DANS LA CONSOLE DU LXC xiaozhi, en root :
 #   bash xiaozhi/changer-nom.sh Hector
+#   bash xiaozhi/changer-nom.sh Hector victor "hey to"   (variantes entendues par la transcription)
 # Une copie de la config est gardee a cote (.config.yaml.avant-<nom>).
 
 set -euo pipefail
@@ -14,15 +15,16 @@ CFG=/opt/xiaozhi/main/xiaozhi-server/data/.config.yaml
 [ -f "$CFG" ] || { echo "Config introuvable : $CFG (lancer d'abord install.sh)" >&2; exit 1; }
 
 cp -p "$CFG" "$CFG.avant-$NOM"
-NOM="$NOM" /opt/xiaozhi/venv/bin/python - "$CFG" <<'FIN'
+VARIANTES="${*:2}" NOM="$NOM" /opt/xiaozhi/venv/bin/python - "$CFG" "${@:2}" <<'FIN'
 import json, os, re, sys
 p = sys.argv[1]
 nom = os.environ["NOM"].strip()
 bas = nom.lower()
+noms = [bas] + [v.strip().lower() for v in sys.argv[2:] if v.strip()]
 t = open(p, encoding="utf-8").read()
 
 # 1. filtre du nom : liste des noms acceptes
-t, n1 = re.subn(r"(?m)^(  noms:).*$", lambda m: m.group(1) + " " + json.dumps([bas], ensure_ascii=False), t)
+t, n1 = re.subn(r"(?m)^(  noms:).*$", lambda m: m.group(1) + " " + json.dumps(noms, ensure_ascii=False), t)
 # 2. mots de reveil (bloc wakeup_words)
 t, n2 = re.subn(r"(?m)^wakeup_words:\n(?:  - [^\n]*\n)+",
                 lambda m: "wakeup_words:\n" + "".join(f"  - {json.dumps(w, ensure_ascii=False)}\n"
