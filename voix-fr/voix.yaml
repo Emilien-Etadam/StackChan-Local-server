@@ -10,6 +10,8 @@ effet:            # recette "petit_robot"
   peigne_dose: 0.35
   bits: 0
   gain_db: 9       # volume de sortie (dB) ; un limiteur evite la saturation
+  coupe_graves_hz: 250   # graves retires (petit haut-parleur) ; 0 = aucun
+  presence_db: 3   # medium releve vers 2,5 kHz (intelligibilite)
 pocket:
   langue: french
   threads: 2        # Pocket se limite a 1 coeur par defaut ; 2 a 4 peut donner plus de marge

@@ -7,17 +7,19 @@ Trois etages, chacun traite l'audio morceau par morceau en gardant son etat
   2. modulation en anneau : le signal est multiplie par une onde lente (vibration robot).
   3. echo metallique tres court : filtre en peigne reinjecte (voix dans une boite en tole).
   4. option : reduction de resolution (bitcrush).
-  5. volume : gain puis limiteur doux (monte le niveau sans saturer).
+  5. egaliseur petit haut-parleur : coupe les graves (il ne peut pas les rendre, il
+     vibre et gresille) et releve un peu les mediums ou la voix se comprend.
+  6. volume : gain puis limiteur doux (monte le niveau sans saturer).
 """
 import numpy as np
-from scipy.signal import lfilter
+from scipy.signal import butter, lfilter, lfilter_zi
 
 
 class RobotFX:
     def __init__(self, sr=24000, demi_tons=0.0, fenetre_ms=30.0,
                  anneau_hz=50.0, anneau_dose=0.0,
                  peigne_ms=6.0, peigne_retour=0.0, peigne_dose=0.0,
-                 bits=0, gain_db=0.0):
+                 bits=0, gain_db=0.0, coupe_graves_hz=0.0, presence_db=0.0):
         self.sr = sr
         self.r = 2.0 ** (demi_tons / 12.0)
         self.W = max(64, int(sr * fenetre_ms / 1000))
@@ -30,6 +32,14 @@ class RobotFX:
         self.peigne_dose = peigne_dose
         self.bits = bits
         self.gain = 10.0 ** (gain_db / 20.0)
+        # egaliseur : chaque filtre garde son etat d'un morceau a l'autre
+        self.filtres = []
+        if coupe_graves_hz and coupe_graves_hz > 20:
+            b, a = butter(2, coupe_graves_hz / (sr / 2), btype="highpass")
+            self.filtres.append([b, a, np.zeros(max(len(a), len(b)) - 1)])
+        if presence_db:
+            b, a = _cloche(sr, 2500.0, presence_db, q=0.9)
+            self.filtres.append([b, a, np.zeros(2)])
 
     def _hauteur(self, x):
         if abs(self.r - 1.0) < 1e-6:
@@ -65,9 +75,21 @@ class RobotFX:
         if self.bits:
             q = 2.0 ** (self.bits - 1)
             y = np.round(y * q) / q
+        for f in self.filtres:
+            y, f[2] = lfilter(f[0], f[1], y, zi=f[2])
         if self.gain != 1.0:
             y = limiter(y * self.gain)
         return np.clip(y, -1.0, 1.0).astype(np.float32)
+
+
+def _cloche(sr, f0, gain_db, q=1.0):
+    """Filtre en cloche (egaliseur parametrique, formules RBJ) : bosse de gain_db autour de f0."""
+    A = 10 ** (gain_db / 40.0)
+    w = 2 * np.pi * f0 / sr
+    al = np.sin(w) / (2 * q)
+    b = np.array([1 + al * A, -2 * np.cos(w), 1 - al * A])
+    a = np.array([1 + al / A, -2 * np.cos(w), 1 - al / A])
+    return b / a[0], a / a[0]
 
 
 def limiter(y, seuil=0.7):

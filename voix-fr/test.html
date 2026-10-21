@@ -45,6 +45,8 @@
       <label><span>Résonance : <b id="v_peigne_retour"></b></span><input type="range" id="peigne_retour" min="0" max="0.8" step="0.05"></label>
       <label><span>Grain (bits, 0 = aucun) : <b id="v_bits"></b></span><input type="range" id="bits" min="0" max="16" step="1"></label>
       <label><span>Volume : <b id="v_gain_db"></b> dB</span><input type="range" id="gain_db" min="0" max="20" step="1"></label>
+      <label><span>Coupe des graves : <b id="v_coupe_graves_hz"></b> Hz (0 = aucune)</span><input type="range" id="coupe_graves_hz" min="0" max="500" step="10"></label>
+      <label><span>Présence (médiums) : <b id="v_presence_db"></b> dB</span><input type="range" id="presence_db" min="0" max="8" step="0.5"></label>
     </div>
     <div class="boutons">
       <button id="ecouter">Écouter</button>
@@ -78,7 +80,7 @@
   </section>
 </main>
 <script>
-const CLES = ["demi_tons","anneau_hz","anneau_dose","peigne_ms","peigne_retour","peigne_dose","bits","gain_db"];
+const CLES = ["demi_tons","anneau_hz","anneau_dose","peigne_ms","peigne_retour","peigne_dose","bits","gain_db","coupe_graves_hz","presence_db"];
 const $ = id => document.getElementById(id);
 let ctx = null;
 

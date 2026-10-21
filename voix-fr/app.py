@@ -31,13 +31,16 @@ VOIX = ["estelle", "alba", "anna", "azelma", "caro_davy", "cosette", "eponine", 
         "paul", "george", "michael", "bill_boerst", "peter_yearsley", "stuart_bell",
         "juergen", "giovanni", "rafael", "daan"]
 CLES_FX = ["demi_tons", "fenetre_ms", "anneau_hz", "anneau_dose",
-           "peigne_ms", "peigne_retour", "peigne_dose", "bits", "gain_db"]
-GAIN_DEFAUT_DB = 9.0     # niveau de sortie si voix.yaml ne le precise pas
+           "peigne_ms", "peigne_retour", "peigne_dose", "bits", "gain_db",
+           "coupe_graves_hz", "presence_db"]
+# valeurs si voix.yaml ne les precise pas (reglage pour le petit haut-parleur du CoreS3)
+DEFAUTS_FX = {"gain_db": 9.0, "coupe_graves_hz": 250.0, "presence_db": 3.0}
 
 
 def lire_config():
     c = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
-    c.setdefault("effet", {}).setdefault("gain_db", GAIN_DEFAUT_DB)
+    for k, v in DEFAUTS_FX.items():
+        c.setdefault("effet", {}).setdefault(k, v)
     return c
 
 
