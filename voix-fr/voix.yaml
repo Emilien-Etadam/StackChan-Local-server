@@ -17,6 +17,9 @@ parakeet:
   dossier: /opt/voix-fr/modeles/parakeet-tdt-0.6b-v3
   threads: 8
   quantization: null   # null = precision complete (fp32), "int8" = plus rapide, un peu moins precis
+locuteur:         # reconnaissance de la voix (empreintes dans /etc/voix-fr/locuteurs.json)
+  modele: /opt/voix-fr/modeles/wespeaker_en_voxceleb_resnet34_LM.onnx
+  threads: 2
 ecoute:
   hote: 0.0.0.0
   port: 8200

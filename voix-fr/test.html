@@ -54,6 +54,19 @@
     <div class="resultat" id="texte_lu" title="Texte réellement envoyé à la voix, nombres en toutes lettres"></div>
   </section>
 
+
+  <section>
+    <h2>Ma voix (le robot ne répond qu'à elle)</h2>
+    <p class="sous" style="margin-bottom:10px">Parle au robot, tes phrases apparaissent ci-dessous (captées par son micro).
+      Clique « C'est moi » sur 3 à 5 phrases bien claires. Tant que personne n'est inscrit, tout le monde passe.</p>
+    <div class="boutons">
+      <label style="flex-direction:row;align-items:center;gap:6px">Identifiant
+        <input id="ident" value="emilien" style="font:inherit;padding:6px;border-radius:8px;border:1px solid var(--bord);background:var(--fond);color:var(--texte);width:9em"></label>
+      <span class="mesure" id="inscrits"></span>
+      <button id="effacer_voix" class="second">Effacer mon empreinte</button>
+    </div>
+    <div id="extraits" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+  </section>
   <section>
     <h2>Transcription</h2>
     <div class="boutons">
@@ -127,6 +140,41 @@ $("transcrire").onclick = async () => {
   $("transcrire").disabled = false;
 };
 charger();
+
+// ----- Ma voix -----
+async function majVoix() {
+  let e;
+  try { e = await (await fetch("/locuteurs")).json(); } catch { return; }
+  if (!e.actif) { $("inscrits").textContent = "Reconnaissance de la voix indisponible (modèle absent : " + e.modele + ")"; return; }
+  const id = $("ident").value.trim().toLowerCase();
+  const n = e.inscrits[id] || 0;
+  $("inscrits").textContent = n ? `${n} phrase(s) enregistrée(s) pour « ${id} »` : `aucune phrase enregistrée pour « ${id} »`;
+  const box = $("extraits");
+  box.replaceChildren();
+  if (!e.recents.length) { box.textContent = "Aucune phrase reçue du robot pour l'instant."; return; }
+  for (const x of e.recents) {
+    const ligne = document.createElement("div");
+    ligne.style.cssText = "display:flex;gap:10px;align-items:center;flex-wrap:wrap";
+    const a = document.createElement("audio"); a.controls = true; a.src = "data:audio/wav;base64," + x.wav; a.style.height = "32px";
+    const s = document.createElement("span"); s.className = "mesure";
+    const sc = x.scores[id];
+    s.textContent = new Date(x.t * 1000).toLocaleTimeString() + (sc !== undefined ? ` · ressemblance ${sc.toFixed(2)}` : "");
+    const b = document.createElement("button"); b.className = "second"; b.textContent = "C'est moi";
+    b.onclick = async () => {
+      await fetch("/locuteurs/inscrire", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ ident:id, extrait:x.id }) });
+      majVoix();
+    };
+    ligne.append(a, s, b); box.append(ligne);
+  }
+}
+$("effacer_voix").onclick = async () => {
+  if (!confirm("Effacer l'empreinte de « " + $("ident").value + " » ?")) return;
+  await fetch("/locuteurs/effacer", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ ident:$("ident").value }) });
+  majVoix();
+};
+$("ident").onchange = majVoix;
+majVoix();
+setInterval(() => { if (![...document.querySelectorAll("#extraits audio")].some(a => !a.paused)) majVoix(); }, 4000);
 </script>
 </body>
 </html>

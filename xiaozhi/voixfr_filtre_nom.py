@@ -7,6 +7,8 @@ filtre_nom:
   noms: ["stack chan", "stackchan"]   # variantes acceptees (comparaison approximative)
   suite_s: 20                         # secondes sans nom apres la fin d'une reponse
   tolerance: 0.83                     # 1.0 = son exact
+  locuteurs: ["Emilien"]              # facultatif : seules ces voix sont ecoutees
+                                      # (noms du bloc voiceprint.speakers de xiaozhi)
 """
 import re
 import time
@@ -50,10 +52,14 @@ def contient_nom(texte, noms, tolerance=0.83):
     return False
 
 
-def accepte(conn, texte):
+def accepte(conn, texte, locuteur=None):
     cfg = conn.config.get("filtre_nom") or {}
     if not cfg.get("actif", False):
         return True
+    # voix autorisees (reconnaissance du locuteur par voix-fr) : avant tout le reste
+    voix = [v.lower() for v in (cfg.get("locuteurs") or [])]
+    if voix and (locuteur or "").lower() not in voix:
+        return False
     maintenant = time.time()
     noms = cfg.get("noms") or ["stack chan"]
     if contient_nom(texte, noms, float(cfg.get("tolerance", 0.83))):

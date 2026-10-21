@@ -13,7 +13,7 @@ StackChan ──WebSocket──▶ xiaozhi-server (LXC)  ──▶ voix-fr : tra
 | Dossier | Rôle | Où l'installer |
 |---|---|---|
 | `voix-fr/` | Service vocal : Parakeet TDT 0.6B v3 (transcription), Kyutai Pocket TTS « estelle » (voix), effet « petit robot », nombres et dates en toutes lettres, page de réglage `/test` | R750xa, utilisateur `et` |
-| `xiaozhi/` | [xiaozhi-esp32-server](https://github.com/xinnan-tech/xiaozhi-esp32-server) figé sur une version testée, avec 6 correctifs pour le français et un LLM local | LXC Debian 13 dédié, en root |
+| `xiaozhi/` | [xiaozhi-esp32-server](https://github.com/xinnan-tech/xiaozhi-esp32-server) figé sur une version testée, avec 6 correctifs (le 5 tient aussi compte de la voix reconnue) pour le français et un LLM local | LXC Debian 13 dédié, en root |
 | `bench/` | Scripts de mesure utilisés pour choisir les modèles (vitesse CPU, écoute des voix et des effets) | R750xa |
 
 ## Installation
@@ -58,6 +58,15 @@ cd StackChan-Local-server && git pull && bash xiaozhi/changer-nom.sh Hector
 
 Choisir un nom que la transcription écrit toujours pareil : « Stack-chan » sort en
 « Tak Shane », « Stack Shine »... alors que « Hector » est transcrit sans faute.
+
+## Ne répondre qu'à ma voix
+
+voix-fr calcule une empreinte vocale de chaque phrase reçue (modèle WeSpeaker, CPU).
+1. Console du LXC xiaozhi, en root : `bash xiaozhi/activer-voix.sh Emilien`
+2. Parler au robot, puis sur `http://192.168.30.121:8200/test`, section « Ma voix » :
+   cliquer « C'est moi » sur 3 à 5 phrases. Tant qu'aucune voix n'est inscrite, tout le
+   monde passe.
+3. Retour en arrière : `bash xiaozhi/activer-voix.sh --off`
 
 ## Règle de modification
 

@@ -21,7 +21,7 @@ sudo chown -R "$UTIL":"$UTIL" "$APP"
 sudo chown "$UTIL":"$UTIL" "$CONF"
 
 echo "=== 2/5 Code ==="
-cp "$ICI"/app.py "$ICI"/robot_fx.py "$ICI"/normaliser_fr.py "$ICI"/test.html "$APP"/
+cp "$ICI"/app.py "$ICI"/robot_fx.py "$ICI"/normaliser_fr.py "$ICI"/locuteur.py "$ICI"/test.html "$APP"/
 if [ ! -f "$CONF/voix.yaml" ]; then
   cp "$ICI/voix.yaml" "$CONF/voix.yaml"
   echo "   config par defaut creee : $CONF/voix.yaml"
@@ -33,7 +33,7 @@ echo "=== 3/5 Environnement Python (CPU uniquement) ==="
 [ -x "$APP/venv/bin/python" ] || uv venv --python 3.12 "$APP/venv"
 uv pip install --python "$APP/venv/bin/python" --torch-backend cpu torch
 uv pip install --python "$APP/venv/bin/python" pocket-tts "onnx-asr[cpu,hub]" \
-    fastapi "uvicorn[standard]" python-multipart pyyaml numpy scipy huggingface_hub num2words
+    fastapi "uvicorn[standard]" python-multipart pyyaml numpy scipy huggingface_hub num2words sherpa-onnx
 
 echo "=== 4/5 Modeles ==="
 "$APP/venv/bin/python" - <<'PY'
@@ -44,6 +44,19 @@ from pocket_tts import TTSModel
 m = TTSModel.load_model(language="french"); m.get_state_for_audio_prompt("estelle")
 print("modeles OK")
 PY
+# Empreinte vocale : WeSpeaker ResNet34 (VoxCeleb) au format sherpa-onnx, ~26 Mo
+LOC=/opt/voix-fr/modeles/wespeaker_en_voxceleb_resnet34_LM.onnx
+if [ ! -s "$LOC" ]; then
+  "$APP/venv/bin/python" - <<'PY' || curl -fL -o "$LOC" \
+    https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/wespeaker_en_voxceleb_resnet34_LM.onnx \
+    || echo "   ATTENTION : modele d'empreinte vocale non telecharge, reconnaissance de la voix desactivee"
+from huggingface_hub import hf_hub_download
+import shutil
+p = hf_hub_download("csukuangfj/speaker-embedding-models", "wespeaker_en_voxceleb_resnet34_LM.onnx")
+shutil.copy(p, "/opt/voix-fr/modeles/wespeaker_en_voxceleb_resnet34_LM.onnx")
+print("modele d'empreinte vocale OK")
+PY
+fi
 
 echo "=== 5/5 Service systemd ==="
 PORT=$(grep -E '^\s*port:' "$CONF/voix.yaml" | awk '{print $2}'); PORT=${PORT:-8200}

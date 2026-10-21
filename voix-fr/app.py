@@ -7,6 +7,9 @@
   GET  /test                     page de reglage et d'essai
   GET  /config  POST /config     lecture / enregistrement du reglage (voix + effet)
   GET  /health
+  POST /voiceprint/identify      reconnaissance du locuteur (contrat « voiceprint » de xiaozhi)
+  GET  /voiceprint/health
+  GET  /locuteurs  POST /locuteurs/inscrire|inscrire-fichier|effacer   inscription depuis /test
 Configuration : /etc/voix-fr/voix.yaml
 """
 import io, os, subprocess, threading, time, wave
@@ -74,6 +77,19 @@ with tts_verrou:                                         # chauffe
     tts.generate_audio(etat_voix(cfg["voix"]), "Bonjour.")
 
 app = FastAPI(title="voix-fr")
+
+# ---------- Reconnaissance du locuteur ----------
+loc_cfg = cfg.get("locuteur") or {}
+MODELE_LOC = Path(loc_cfg.get("modele", "/opt/voix-fr/modeles/wespeaker_en_voxceleb_resnet34_LM.onnx"))
+locuteurs = None
+from locuteur import wav_16k
+if MODELE_LOC.exists() and MODELE_LOC.stat().st_size > 1_000_000:
+    try:
+        from locuteur import Locuteurs
+        locuteurs = Locuteurs(MODELE_LOC, CONFIG_PATH.parent / "locuteurs.json",
+                              threads=int(loc_cfg.get("threads", 2)))
+    except Exception as e:                       # le reste du service doit tourner quand meme
+        print(f"reconnaissance du locuteur desactivee : {e}", flush=True)
 
 
 # ---------- Transcription ----------
@@ -173,6 +189,62 @@ class Texte(BaseModel):
 @app.post("/normaliser")
 def voir_normalisation(t: Texte):
     return {"text": normaliser(t.text)}
+
+
+@app.get("/voiceprint/health")
+def voiceprint_sante():
+    if locuteurs is None:
+        raise HTTPException(503, f"modele absent : {MODELE_LOC}")
+    return {"status": "healthy"}
+
+
+@app.post("/voiceprint/identify")
+async def voiceprint_identifier(file: UploadFile = File(...), speaker_ids: str = Form("")):
+    if locuteurs is None:
+        raise HTTPException(503, "reconnaissance du locuteur indisponible")
+    audio = decoder_16k(await file.read())
+    ids = [i.strip() for i in speaker_ids.split(",") if i.strip()]
+    if audio.size < 8000:                       # moins de 0,5 s : pas fiable
+        return {"speaker_id": "", "score": 0.0}
+    ident, score, amorce = locuteurs.identifier(audio, ids, wav_16k(audio))
+    return {"speaker_id": ident, "score": round(float(score), 3), "amorce": amorce}
+
+
+@app.get("/locuteurs")
+def locuteurs_etat():
+    if locuteurs is None:
+        return {"actif": False, "modele": str(MODELE_LOC)}
+    return {"actif": True, **locuteurs.etat()}
+
+
+class Inscription(BaseModel):
+    ident: str
+    extrait: int | None = None
+
+
+@app.post("/locuteurs/inscrire")
+def locuteurs_inscrire(r: Inscription):
+    n = locuteurs.inscrire_extrait(r.extrait, r.ident.strip().lower()) if locuteurs else None
+    if n is None:
+        raise HTTPException(400, "extrait introuvable")
+    return {"ok": True, "phrases": n}
+
+
+@app.post("/locuteurs/inscrire-fichier")
+async def locuteurs_inscrire_fichier(ident: str = Form(...), file: UploadFile = File(...)):
+    if locuteurs is None:
+        raise HTTPException(503, "reconnaissance du locuteur indisponible")
+    n = locuteurs.inscrire_audio(decoder_16k(await file.read()), ident.strip().lower())
+    if n is None:
+        raise HTTPException(400, "audio trop court")
+    return {"ok": True, "phrases": n}
+
+
+@app.post("/locuteurs/effacer")
+def locuteurs_effacer(r: Inscription):
+    if locuteurs:
+        locuteurs.effacer(r.ident.strip().lower())
+    return {"ok": True}
 
 
 @app.get("/health")

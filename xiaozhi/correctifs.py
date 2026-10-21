@@ -105,8 +105,8 @@ CORRECTIFS = [
                 await startToChat(conn, enhanced_text)''',
          '''                enqueue_asr_report(conn, enhanced_text, audio_snapshot)
                 from core.utils.voixfr_filtre_nom import accepte  # [voix-fr]
-                if not accepte(conn, content_for_length_check):
-                    logger.bind(tag=TAG).info(f"[voix-fr] ignore, nom du robot absent : {content_for_length_check}")
+                if not accepte(conn, content_for_length_check, speaker_name):
+                    logger.bind(tag=TAG).info(f"[voix-fr] ignore ({speaker_name or 'voix inconnue'}) : {content_for_length_check}")
                     return
                 await startToChat(conn, enhanced_text)'''),
     ]),
