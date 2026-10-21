@@ -20,6 +20,14 @@ wakeup_words:
   - "stack chan"
   - "salut stack chan"
 
+# [voix-fr] Le robot ne repond qu'aux phrases contenant son nom, puis sans le nom
+# pendant suite_s secondes apres chacune de ses reponses. actif: false pour desactiver.
+filtre_nom:
+  actif: true
+  noms: ["stack chan", "stackchan"]
+  suite_s: 20
+  tolerance: 0.75
+
 prompt_template: agent-base-prompt-fr.txt
 prompt: |
   Tu t'appelles Stack-chan. Tu es un petit robot de bureau curieux, serviable et un peu espiègle, qui vit sur un bureau. Tu t'exprimes en français courant, avec humour quand ça s'y prête, mais sans en faire trop.

@@ -45,6 +45,7 @@ git -c safe.directory="$BASE" -C "$BASE" checkout -q -f "$VERSION"
 echo "=== 4/7 Correctifs francais ==="
 cp "$ICI/correctifs.py" "$BASE/correctifs.py"
 cp "$ICI/agent-base-prompt-fr.txt" "$SRV/agent-base-prompt-fr.txt"
+cp "$ICI"/voixfr_*.py "$SRV/core/utils/"
 
 echo "=== 5/7 Environnement Python 3.10 (PyTorch CPU) ==="
 # venv cree par une version precedente du script avec un Python sous /root : a refaire

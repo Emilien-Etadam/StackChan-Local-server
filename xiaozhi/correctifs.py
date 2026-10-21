@@ -90,6 +90,45 @@ CORRECTIFS = [
         ('\'{"say_goodbye": "再见，下次再聊~"}\'', '\'{"say_goodbye": "Au revoir, à bientôt !"}\''),
         ('content="退出意图已处理"', 'content="Fin de conversation traitée"'),
         ('role="assistant", content="再见，下次再聊~"', 'role="assistant", content="Au revoir, à bientôt !"'),
+        # 5b. heure de fin de chaque reponse du robot (fenetre de suite du filtre de nom)
+        ('''    def clearSpeakStatus(self):
+        self.client_is_speaking = False''',
+         '''    def clearSpeakStatus(self):
+        self.client_is_speaking = False
+        self.voixfr_fin_parole = time.time()  # [voix-fr]'''),
+    ]),
+    # 5. Filtre du nom : le robot ne repond qu'aux phrases contenant son nom
+    #    (ou juste apres une reponse). Reglages filtre_nom dans .config.yaml.
+    ("core/providers/asr/base.py", [
+        ('''                enqueue_asr_report(conn, enhanced_text, audio_snapshot)
+                # 使用自定义模块进行上报
+                await startToChat(conn, enhanced_text)''',
+         '''                enqueue_asr_report(conn, enhanced_text, audio_snapshot)
+                from core.utils.voixfr_filtre_nom import accepte  # [voix-fr]
+                if not accepte(conn, content_for_length_check):
+                    logger.bind(tag=TAG).info(f"[voix-fr] ignore, nom du robot absent : {content_for_length_check}")
+                    return
+                await startToChat(conn, enhanced_text)'''),
+    ]),
+    # 6. Outils publies par le robot : descriptions japonaises traduites, outils
+    #    inutilisables en francais masques (voir voixfr_outils_robot.py).
+    ("core/providers/tools/device_mcp/mcp_handler.py", [
+        ('''                    new_tool = {
+                        "name": name,
+                        "description": description,
+                        "inputSchema": input_schema,
+                    }''',
+         '''                    from core.utils.voixfr_outils_robot import adapter  # [voix-fr]
+                    adapte = adapter(name, description, input_schema)
+                    if adapte is None:
+                        logger.bind(tag=TAG).info(f"[voix-fr] outil du robot masque : {name}")
+                        continue
+                    description, input_schema = adapte
+                    new_tool = {
+                        "name": name,
+                        "description": description,
+                        "inputSchema": input_schema,
+                    }'''),
     ]),
     ("plugins_func/functions/handle_exit_intent.py", [
         ('"description": "当用户想结束对话或需要退出系统时调用",',

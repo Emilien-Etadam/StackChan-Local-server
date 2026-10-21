@@ -13,7 +13,7 @@ StackChan ──WebSocket──▶ xiaozhi-server (LXC)  ──▶ voix-fr : tra
 | Dossier | Rôle | Où l'installer |
 |---|---|---|
 | `voix-fr/` | Service vocal : Parakeet TDT 0.6B v3 (transcription), Kyutai Pocket TTS « estelle » (voix), effet « petit robot », nombres et dates en toutes lettres, page de réglage `/test` | R750xa, utilisateur `et` |
-| `xiaozhi/` | [xiaozhi-esp32-server](https://github.com/xinnan-tech/xiaozhi-esp32-server) figé sur une version testée, avec 4 correctifs pour le français et un LLM local | LXC Debian 13 dédié, en root |
+| `xiaozhi/` | [xiaozhi-esp32-server](https://github.com/xinnan-tech/xiaozhi-esp32-server) figé sur une version testée, avec 6 correctifs pour le français et un LLM local | LXC Debian 13 dédié, en root |
 | `bench/` | Scripts de mesure utilisés pour choisir les modèles (vitesse CPU, écoute des voix et des effets) | R750xa |
 
 ## Installation
@@ -61,13 +61,16 @@ Ils ne touchent jamais aux configurations existantes :
 3. Jours de la semaine en français dans le contexte donné au LLM.
 4. Exemples injectés en mode outils et descriptions des outils système traduits en français
    (sinon le modèle répond en chinois) ; calendrier lunaire chinois retiré.
+5. Filtre du nom (`voixfr_filtre_nom.py`) : le robot ne répond qu'aux phrases contenant
+   « Stack-chan » (orthographe approchée), puis sans le nom pendant 20 s après chaque réponse.
+   Réglages `filtre_nom` dans `.config.yaml` (`actif: false` pour couper).
+6. Outils du robot (`voixfr_outils_robot.py`) : descriptions japonaises traduites ;
+   `speak_katakoto`, `get_time` (heure du Japon) et `set_timer` (rappel lu en japonais) masqués.
 
 Chaque correctif vérifie que le code d'origine est celui attendu et s'arrête sans rien
 modifier dans le cas contraire (nouvelle version de xiaozhi à revérifier).
 
 ## Écarts connus
 
-- Pas de mot de réveil en mode XiaoZhi : le robot écoute en continu et répond aussi aux
-  conversations alentour.
-- Les descriptions des outils du robot (expressions, tête, minuteur) restent en japonais
-  dans le firmware stackchan-idf.
+- Interface et voix interne du robot (alertes du minuteur `lt_timer`) en japonais dans le
+  firmware stackchan-idf.
