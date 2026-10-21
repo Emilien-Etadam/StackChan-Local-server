@@ -1,0 +1,21 @@
+# /etc/voix-fr/voix.yaml : reglage du service voix-fr (modifiable aussi depuis la page /test)
+voix: estelle
+effet:            # recette "petit_robot"
+  demi_tons: 5
+  fenetre_ms: 30
+  anneau_hz: 50
+  anneau_dose: 0.3
+  peigne_ms: 6
+  peigne_retour: 0.4
+  peigne_dose: 0.35
+  bits: 0
+pocket:
+  langue: french
+  threads: 2        # Pocket se limite a 1 coeur par defaut ; 2 a 4 peut donner plus de marge
+parakeet:
+  dossier: /opt/voix-fr/modeles/parakeet-tdt-0.6b-v3
+  threads: 8
+  quantization: null   # null = precision complete (fp32), "int8" = plus rapide, un peu moins precis
+ecoute:
+  hote: 0.0.0.0
+  port: 8200

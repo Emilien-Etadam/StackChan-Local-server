@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>voix-fr</title>
+<style>
+  :root { --fond:#f5f4f0; --carte:#fff; --texte:#1d1d1b; --doux:#6b6a65; --accent:#2f6f5e; --bord:#dedcd5; }
+  @media (prefers-color-scheme: dark) { :root { --fond:#161615; --carte:#21211f; --texte:#ecebe6; --doux:#9d9c95; --accent:#6fbfa8; --bord:#34332f; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--fond); color:var(--texte); font:15px/1.45 system-ui, sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:16px; margin:0 0 12px; }
+  .sous { color:var(--doux); margin:0 0 20px; }
+  section { background:var(--carte); border:1px solid var(--bord); border-radius:12px; padding:18px; margin-bottom:16px; }
+  textarea { width:100%; min-height:84px; font:inherit; padding:10px; border:1px solid var(--bord); border-radius:8px; background:var(--fond); color:var(--texte); }
+  .grille { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px 18px; margin:14px 0; }
+  label { display:flex; flex-direction:column; gap:3px; font-size:13px; color:var(--doux); }
+  label b { color:var(--texte); font-weight:600; }
+  input[type=range] { width:100%; accent-color:var(--accent); }
+  select, input[type=file] { font:inherit; padding:6px; border-radius:8px; border:1px solid var(--bord); background:var(--fond); color:var(--texte); }
+  .boutons { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  button { font:inherit; padding:8px 14px; border-radius:8px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; }
+  button.second { background:transparent; color:var(--accent); }
+  button:disabled { opacity:.5; cursor:default; }
+  .mesure { color:var(--doux); font-size:13px; font-variant-numeric:tabular-nums; }
+  .resultat { margin-top:10px; padding:10px; border-radius:8px; background:var(--fond); min-height:20px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<main>
+  <h1>voix-fr</h1>
+  <p class="sous">Essai et réglage de la voix du robot (Pocket TTS + effet robot) et de la transcription (Parakeet).</p>
+
+  <section>
+    <h2>Voix</h2>
+    <textarea id="texte">Bonjour ! Les enfants ont acheté des œufs frais au marché, puis ils sont allés voir le fondeur à quinze heures. Tu veux que je te le rappelle ?</textarea>
+    <div class="grille">
+      <label>Voix <select id="voix"></select></label>
+      <label><span>Hauteur : <b id="v_demi_tons"></b> demi-tons</span><input type="range" id="demi_tons" min="0" max="8" step="0.5"></label>
+      <label><span>Vibration : <b id="v_anneau_dose"></b></span><input type="range" id="anneau_dose" min="0" max="1" step="0.05"></label>
+      <label><span>Fréquence de vibration : <b id="v_anneau_hz"></b> Hz</span><input type="range" id="anneau_hz" min="10" max="120" step="1"></label>
+      <label><span>Écho métallique : <b id="v_peigne_dose"></b></span><input type="range" id="peigne_dose" min="0" max="1" step="0.05"></label>
+      <label><span>Taille de la boîte : <b id="v_peigne_ms"></b> ms</span><input type="range" id="peigne_ms" min="2" max="15" step="0.5"></label>
+      <label><span>Résonance : <b id="v_peigne_retour"></b></span><input type="range" id="peigne_retour" min="0" max="0.8" step="0.05"></label>
+      <label><span>Grain (bits, 0 = aucun) : <b id="v_bits"></b></span><input type="range" id="bits" min="0" max="16" step="1"></label>
+    </div>
+    <div class="boutons">
+      <button id="ecouter">Écouter</button>
+      <button id="enregistrer" class="second">Enregistrer comme voix du robot</button>
+      <span class="mesure" id="mesure_tts"></span>
+    </div>
+    <div class="resultat" id="texte_lu" title="Texte réellement envoyé à la voix, nombres en toutes lettres"></div>
+  </section>
+
+  <section>
+    <h2>Transcription</h2>
+    <div class="boutons">
+      <input type="file" id="fichier" accept="audio/*">
+      <button id="transcrire">Transcrire</button>
+      <span class="mesure" id="mesure_asr"></span>
+    </div>
+    <div class="resultat" id="texte_asr"></div>
+  </section>
+</main>
+<script>
+const CLES = ["demi_tons","anneau_hz","anneau_dose","peigne_ms","peigne_retour","peigne_dose","bits"];
+const $ = id => document.getElementById(id);
+let ctx = null;
+
+function afficher() { CLES.forEach(k => $("v_"+k).textContent = $(k).value); }
+function lireEffet() { const e = {}; CLES.forEach(k => e[k] = Number($(k).value)); e.fenetre_ms = 30; return e; }
+
+async function charger() {
+  const c = await (await fetch("/config")).json();
+  c.voix_disponibles.forEach(v => $("voix").add(new Option(v, v, false, v === c.voix)));
+  CLES.forEach(k => { if (c.effet[k] !== undefined) $(k).value = c.effet[k]; else $(k).value = 0; $(k).oninput = afficher; });
+  afficher();
+}
+
+$("ecouter").onclick = async () => {
+  $("ecouter").disabled = true; $("mesure_tts").textContent = "…";
+  fetch("/normaliser", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ text:$("texte").value }) })
+    .then(r => r.json()).then(r => $("texte_lu").textContent = "Lu : " + r.text).catch(() => {});
+  ctx = ctx || new AudioContext({ sampleRate: 24000 });
+  const t0 = performance.now(); let premier = null, prochain = ctx.currentTime + 0.05, reste = new Uint8Array(0), duree = 0;
+  try {
+    const rep = await fetch("/tts/stream", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ text:$("texte").value, character:$("voix").value, fx:lireEffet() }) });
+    if (!rep.ok) throw new Error(await rep.text());
+    const lecteur = rep.body.getReader();
+    while (true) {
+      const { done, value } = await lecteur.read(); if (done) break;
+      if (premier === null) premier = performance.now() - t0;
+      const tout = new Uint8Array(reste.length + value.length); tout.set(reste); tout.set(value, reste.length);
+      const n = Math.floor(tout.length / 2); reste = tout.slice(n * 2);
+      if (!n) continue;
+      const vue = new DataView(tout.buffer, 0, n * 2), f = new Float32Array(n);
+      for (let i = 0; i < n; i++) f[i] = vue.getInt16(i * 2, true) / 32768;
+      const b = ctx.createBuffer(1, n, 24000); b.copyToChannel(f, 0);
+      const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination);
+      prochain = Math.max(prochain, ctx.currentTime); s.start(prochain); prochain += b.duration; duree += b.duration;
+    }
+    const total = (performance.now() - t0) / 1000;
+    $("mesure_tts").textContent = `premier son ${(premier/1000).toFixed(2)} s · audio ${duree.toFixed(1)} s · calcul ${total.toFixed(2)} s (×${(duree/total).toFixed(1)} temps réel)`;
+  } catch (e) { $("mesure_tts").textContent = "Erreur : " + e.message; }
+  $("ecouter").disabled = false;
+};
+
+$("enregistrer").onclick = async () => {
+  const rep = await fetch("/config", { method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ voix:$("voix").value, effet:lireEffet() }) });
+  $("mesure_tts").textContent = rep.ok ? "Réglage enregistré : le robot l'utilise dès sa prochaine phrase." : "Erreur à l'enregistrement";
+};
+
+$("transcrire").onclick = async () => {
+  const f = $("fichier").files[0]; if (!f) return;
+  $("transcrire").disabled = true; $("mesure_asr").textContent = "…";
+  const fd = new FormData(); fd.append("file", f); fd.append("model", "parakeet");
+  const t0 = performance.now();
+  try {
+    const r = await (await fetch("/v1/audio/transcriptions", { method:"POST", body:fd })).json();
+    $("texte_asr").textContent = r.text;
+    $("mesure_asr").textContent = `audio ${r.duree_audio_s} s · calcul ${r.duree_calcul_s} s · aller-retour ${((performance.now()-t0)/1000).toFixed(2)} s`;
+  } catch (e) { $("mesure_asr").textContent = "Erreur : " + e.message; }
+  $("transcrire").disabled = false;
+};
+charger();
+</script>
+</body>
+</html>

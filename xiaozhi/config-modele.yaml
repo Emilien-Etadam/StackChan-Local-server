@@ -1,0 +1,84 @@
+# data/.config.yaml : surcharge de config.yaml pour le robot (genere par install-xiaozhi.sh).
+# Seules les valeurs differentes du fichier d'origine figurent ici.
+server:
+  ip: 0.0.0.0
+  port: 8000
+  http_port: 8003
+  websocket: ws://__IP__:8000/xiaozhi/v1/
+  vision_explain: http://__IP__:8003/mcp/vision/explain
+  auth:
+    enabled: false
+
+close_connection_no_voice_time: 600
+end_prompt:
+  enable: false
+exit_commands:
+  - "au revoir"
+  - "bonne nuit"
+  - "à plus tard"
+wakeup_words:
+  - "stack chan"
+  - "salut stack chan"
+
+prompt_template: agent-base-prompt-fr.txt
+prompt: |
+  Tu t'appelles Stack-chan. Tu es un petit robot de bureau curieux, serviable et un peu espiègle, qui vit sur un bureau. Tu t'exprimes en français courant, avec humour quand ça s'y prête, mais sans en faire trop.
+
+selected_module:
+  VAD: SileroVAD
+  ASR: VoixFrASR
+  LLM: LlamaSwapLLM
+  VLLM: LlamaSwapVLLM
+  TTS: VoixFrTTS
+  Memory: nomem
+  Intent: function_call
+
+Intent:
+  function_call:
+    type: function_call
+    functions: []   # les outils du robot arrivent tout seuls par MCP ; handle_exit_intent est ajoute d'office
+
+VAD:
+  SileroVAD:
+    type: silero
+    threshold: 0.5
+    threshold_low: 0.3
+    model_dir: models/snakers4_silero-vad
+    min_silence_duration_ms: 600
+
+ASR:
+  VoixFrASR:
+    type: openai
+    api_key: voix-fr
+    base_url: http://192.168.30.121:8200/v1/audio/transcriptions
+    model_name: parakeet
+    output_dir: tmp/
+
+LLM:
+  LlamaSwapLLM:
+    type: openai
+    base_url: http://192.168.30.121:8090/v1
+    model_name: chat
+    api_key: __CLE_LLAMA_SWAP__
+    max_tokens: 400
+    temperature: 0.7
+    timeout: 120
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+
+VLLM:
+  LlamaSwapVLLM:
+    type: openai
+    url: http://192.168.30.121:8090/v1
+    model_name: chat
+    api_key: __CLE_LLAMA_SWAP__
+
+TTS:
+  VoixFrTTS:
+    type: index_stream
+    api_url: http://192.168.30.121:8200/tts/stream
+    audio_format: pcm
+    voice: estelle
+    output_dir: tmp/
+    language: français
