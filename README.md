@@ -47,6 +47,18 @@ Ils ne touchent jamais aux configurations existantes :
 - `/etc/voix-fr/voix.yaml` (R750xa) : voix, effet robot, nombre de cœurs ;
 - `/opt/xiaozhi/main/xiaozhi-server/data/.config.yaml` (LXC) : prompt, adresses, clé API.
 
+## Changer le nom du robot
+
+Le robot ne répond qu'aux phrases contenant son nom. Pour le changer (console du LXC
+xiaozhi, en root) :
+
+```bash
+cd StackChan-Local-server && git pull && bash xiaozhi/changer-nom.sh Hector
+```
+
+Choisir un nom que la transcription écrit toujours pareil : « Stack-chan » sort en
+« Tak Shane », « Stack Shine »... alors que « Hector » est transcrit sans faute.
+
 ## Règle de modification
 
 - **Configs et prompt** : modifier les fichiers ci-dessus directement, ils sont conservés.
