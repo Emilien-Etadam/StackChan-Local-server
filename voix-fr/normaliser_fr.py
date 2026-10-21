@@ -102,7 +102,12 @@ REGLES = [
 REGLES = [(re.compile(p), f) for p, f in REGLES]
 
 
+# emojis, pictogrammes et selecteurs de variante : la voix les lirait mal ou ferait une pause
+EMOJIS = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\uFE0E\uFE0F\u200D\u20E3]+")
+
+
 def normaliser(texte: str) -> str:
+    texte = EMOJIS.sub(" ", texte)
     for motif, remplacement in REGLES:
         texte = motif.sub(remplacement, texte)
     return re.sub(r"\s{2,}", " ", texte).strip()

@@ -102,7 +102,8 @@ async def regarder(conn):
         bgr = await _photo(ip, int(cfg.get("port", 80)))
         visage = await asyncio.to_thread(plus_grand_visage, bgr)
     except Exception as e:
-        logger.bind(tag=TAG).warning(f"[voix-fr] regard : photo impossible ({e})")
+        logger.bind(tag=TAG).warning(f"[voix-fr] regard : photo impossible sur http://{ip}:{cfg.get('port', 80)}/api/camera/capture "
+                                     f"({type(e).__name__} {e})")
         return
     if visage is None:
         logger.bind(tag=TAG).info(f"[voix-fr] regard : pas de visage ({time.monotonic() - t0:.2f} s)")
