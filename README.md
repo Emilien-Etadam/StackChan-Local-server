@@ -64,13 +64,14 @@ Ils ne touchent jamais aux configurations existantes :
 5. Filtre du nom (`voixfr_filtre_nom.py`) : le robot ne répond qu'aux phrases contenant
    « Stack-chan » (orthographe approchée), puis sans le nom pendant 20 s après chaque réponse.
    Réglages `filtre_nom` dans `.config.yaml` (`actif: false` pour couper).
-6. Outils du robot (`voixfr_outils_robot.py`) : descriptions japonaises traduites ;
-   `speak_katakoto`, `get_time` (heure du Japon) et `set_timer` (rappel lu en japonais) masqués.
+6. Outils du robot (`voixfr_outils_robot.py`) : descriptions japonaises traduites,
+   `speak_katakoto` (voix japonaise en kana) masqué.
 
 Chaque correctif vérifie que le code d'origine est celui attendu et s'arrête sans rien
 modifier dans le cas contraire (nouvelle version de xiaozhi à revérifier).
 
-## Écarts connus
+## Firmware du robot
 
-- Interface et voix interne du robot (alertes du minuteur `lt_timer`) en japonais dans le
-  firmware stackchan-idf.
+Utiliser le fork [stackchan-idf-EN-FR](https://github.com/Emilien-Etadam/stackchan-idf-EN-FR) :
+écran, outils et voix propre du robot en français. Dans ses réglages (onglet Connecter,
+« Langue et voix »), mettre l'URL du serveur vocal : `http://192.168.30.121:8200`.

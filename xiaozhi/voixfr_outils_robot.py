@@ -2,11 +2,12 @@
 remplacees par du francais, outils inutilisables en francais masques.
 
 - speak_katakoto : voix japonaise du robot, en kana uniquement.
-- get_time : heure du Japon ; xiaozhi donne deja la date et l'heure locales au LLM.
-- set_timer : le rappel est lu par la voix japonaise du robot (illisible en francais).
+Avec le firmware stackchan-idf-EN-FR, get_time (heure locale) et set_timer (rappel lu
+par voix-fr) fonctionnent en francais ; avec le firmware d'origine ils restent en
+japonais (heure du Japon, rappel lu en kana).
 """
 
-MASQUES = {"speak_katakoto", "get_time", "set_timer"}
+MASQUES = {"speak_katakoto"}
 
 FR = {
     "set_expression": (
@@ -19,6 +20,18 @@ FR = {
         "pitch_deg : bas-haut de -10 à 25 degrés. 0 et 0 = regarder droit devant.",
         {"yaw_deg": "angle gauche-droite en degrés (-40 à 40)",
          "pitch_deg": "angle bas-haut en degrés (-10 à 25)"},
+    ),
+    "get_time": (
+        "Donne la date, l'heure et le jour de la semaine (heure locale). À utiliser chaque fois "
+        "qu'on demande l'heure ou la date.",
+        {},
+    ),
+    "set_timer": (
+        "Dans N secondes, Stack-chan prévient de lui-même (rappel). message : phrase courte "
+        "affichée et dite à voix haute. Un seul rappel à la fois, effacé au redémarrage. "
+        "Pour « préviens-moi dans 10 minutes ».",
+        {"seconds": "délai en secondes (1 à 43200)", "message": "phrase du rappel, en français",
+         "reading": "laisser vide"},
     ),
     "lt_timer": (
         "Compte à rebours affiché sur l'écran (exposé, cuisson...). action : start (durée en "
