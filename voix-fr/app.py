@@ -1,6 +1,6 @@
 """voix-fr : service vocal francais sur CPU pour xiaozhi-esp32-server.
 
-  POST /v1/audio/transcriptions  Parakeet TDT 0.6B v3 (format OpenAI, champ "file")
+  POST /v1/audio/transcriptions  Canary 1B v2 forcé en français (ou Parakeet TDT 0.6B v3), format OpenAI
   POST /tts/stream               Pocket TTS + effet robot, PCM s16le mono 24 kHz au fil de l'eau
                                  (contrat du fournisseur xiaozhi "index_stream" : {"text","character"})
   POST /v1/audio/speech          idem en un seul fichier WAV (format OpenAI)
@@ -56,10 +56,21 @@ from pocket_tts import TTSModel
 torch.set_num_threads(int(cfg["pocket"]["threads"]))   # pocket_tts force 1 a l'import
 
 so = ort.SessionOptions()
-so.intra_op_num_threads = int(cfg["parakeet"]["threads"])
+# transcription : Canary (langue imposee, ne bascule pas en anglais sur une phrase courte)
+# ou Parakeet (plus rapide, devine la langue). Reglage : transcription.modele dans voix.yaml
+tr_cfg = cfg.get("transcription") or {}
+MODELE_ASR = tr_cfg.get("modele", "canary")
+LANGUE_ASR = tr_cfg.get("langue", "fr")
+if MODELE_ASR == "canary":
+    asr_nom, asr_dossier = "nemo-canary-1b-v2", tr_cfg.get("dossier", "/opt/voix-fr/modeles/canary-1b-v2")
+    asr_options = {"language": LANGUE_ASR, "pnc": True}
+else:
+    asr_nom, asr_dossier = "nemo-parakeet-tdt-0.6b-v3", cfg["parakeet"]["dossier"]
+    asr_options = {}
+so.intra_op_num_threads = int(tr_cfg.get("threads", cfg["parakeet"]["threads"]))
 so.inter_op_num_threads = 1
-asr = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", cfg["parakeet"]["dossier"],
-                          quantization=cfg["parakeet"].get("quantization"),
+asr = onnx_asr.load_model(asr_nom, asr_dossier,
+                          quantization=tr_cfg.get("quantization", cfg["parakeet"].get("quantization")),
                           sess_options=so, providers=["CPUExecutionProvider"])
 asr_verrou = threading.Lock()
 
@@ -112,7 +123,7 @@ async def transcrire(file: UploadFile = File(...), model: str = Form(None),
         return {"text": ""}
     t0 = time.perf_counter()
     with asr_verrou:
-        texte = asr.recognize(audio, sample_rate=16000)
+        texte = asr.recognize(audio, sample_rate=16000, **asr_options)
     duree = time.perf_counter() - t0
     if response_format == "text":
         return Response(texte, media_type="text/plain")
@@ -286,4 +297,4 @@ def memoire_oublier(n: Note):
 
 @app.get("/health")
 def sante():
-    return JSONResponse({"ok": True, "voix": cfg["voix"], "sr": SR})
+    return JSONResponse({"ok": True, "voix": cfg["voix"], "sr": SR, "transcription": f"{MODELE_ASR} ({LANGUE_ASR})"})

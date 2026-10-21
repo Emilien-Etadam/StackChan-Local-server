@@ -15,6 +15,10 @@ effet:            # recette "petit_robot"
 pocket:
   langue: french
   threads: 2        # Pocket se limite a 1 coeur par defaut ; 2 a 4 peut donner plus de marge
+transcription:    # canary = langue imposee (fr) ; parakeet = plus rapide mais devine la langue
+  modele: canary
+  langue: fr
+  dossier: /opt/voix-fr/modeles/canary-1b-v2
 parakeet:
   dossier: /opt/voix-fr/modeles/parakeet-tdt-0.6b-v3
   threads: 8

@@ -40,6 +40,8 @@ echo "=== 4/5 Modeles ==="
 from huggingface_hub import snapshot_download
 snapshot_download("istupakov/parakeet-tdt-0.6b-v3-onnx",
                   local_dir="/opt/voix-fr/modeles/parakeet-tdt-0.6b-v3")
+# Canary 1B v2 : transcription en langue imposee (francais)
+snapshot_download("istupakov/canary-1b-v2-onnx", local_dir="/opt/voix-fr/modeles/canary-1b-v2")
 from pocket_tts import TTSModel
 m = TTSModel.load_model(language="french"); m.get_state_for_audio_prompt("estelle")
 print("modeles OK")
